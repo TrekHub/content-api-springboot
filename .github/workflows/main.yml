@@ -1,0 +1,29 @@
+name: Slack Notification on Commit
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  slack_notification:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Get commit info
+        run: |
+          AUTHOR=$(git log -1 --pretty=format:'%an')
+          COMMIT_TIME=$(git log -1 --pretty=format:'%cr')
+          COMMIT_MESSAGE=$(git log -1 --pretty=format:'%s')
+          SLACK_MESSAGE="New commit by $AUTHOR at $COMMIT_TIME: $COMMIT_MESSAGE"
+          echo "::set-output name=slack_message::$SLACK_MESSAGE"
+        id: commit_info
+
+      - name: Post to Slack
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' --data "{'text':'${{ steps.commit_info.outputs.slack_message }}'}" $SLACK_WEBHOOK_URL
